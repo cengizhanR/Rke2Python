@@ -14,7 +14,7 @@ def get_shell(ssh_client):
     shell = ssh_client.invoke_shell()
     return shell
 def send_command (shell, command, timeout=1):
-    print(f'Sendin command:{command}')
+    print(f'Sending command:{command}')
     shell.send(command+'\n')
     time.sleep(timeout)
 
