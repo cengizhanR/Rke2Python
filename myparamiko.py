@@ -48,11 +48,43 @@ def scpfile(ssh_client, files, remote_path):
         print(f"Failed to transfer files: {e}")
     finally:
         scp.close()
+def scpdir(ssh_client, dir, path):
+    """
+    Transfers files to a remote server using SCP.
 
+    :param ssh_client: An active SSHClient object.
+    :param files: Path to the local file or list of files to transfer.
+    :param remote_path: Destination path on the remote server.
+    """
+    try:
+        scp = SCPClient(ssh_client.get_transport())
+        scp.put(dir,recursive=True,remote_path=path)
+        print(f"Transferred {dir} to {path}")
+    except Exception as e:
+        print(f"Failed to transfer files: {e}")
+    finally:
+        scp.close()
+
+def scpget(ssh_client, get, path1):
+    """
+    Transfers files to a remote server using SCP.
+
+    :param ssh_client: An active SSHClient object.
+    :param files: Path to the local file or list of files to transfer.
+    :param remote_path: Destination path on the remote server.
+    """
+    try:
+        scp = SCPClient(ssh_client.get_transport())
+        scp.get(get,path1)
+        print(f"Transferred {get} to {path1}")
+    except Exception as e:
+        print(f"Failed to transfer files: {e}")
+    finally:
+        scp.close()
 def get_shell(ssh_client):
     """
     Opens an interactive shell session over SSH.
-
+    scp.get('/etc/passwd', 'C:\\Users\\cengi\\OneDrive\\Masaüstü\\deneme')
     :param ssh_client: An active SSHClient object.
     :return: The interactive shell channel or None if invocation fails.
     """
