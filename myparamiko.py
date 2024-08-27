@@ -1,23 +1,81 @@
 import paramiko
 import time
 import threading
+from scp import SCPClient
+
 
 def connect(server_ip, server_port, user, passwd):
+    """
+    Establishes an SSH connection to the server.
+
+    :param server_ip: IP address of the server.
+    :param server_port: SSH port number.
+    :param user: SSH username.
+    :param passwd: SSH password.
+    :return: An active SSHClient object.
+    """
     ssh_client = paramiko.SSHClient()
+    ssh_client.load_system_host_keys()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    print(f'Connecting to {server_ip}')
-    ssh_client.connect(hostname=server_ip,port=server_port,username=user, password=passwd,
-                       look_for_keys=False, allow_agent=False)
-    return ssh_client
+
+    try:
+        print(f'Connecting to {server_ip}')
+        ssh_client.connect(hostname=server_ip, port=server_port, username=user, password=passwd,
+                           look_for_keys=False, allow_agent=False)
+        print(f'Connected to {server_ip}')
+        return ssh_client
+    except paramiko.AuthenticationException:
+        print(f"Authentication failed for {server_ip}")
+    except paramiko.SSHException as e:
+        print(f"SSH connection error to {server_ip}: {e}")
+    except Exception as e:
+        print(f"Failed to connect to {server_ip}: {e}")
+    return None
+
+def scpfile(ssh_client, files, remote_path):
+    """
+    Transfers files to a remote server using SCP.
+
+    :param ssh_client: An active SSHClient object.
+    :param files: Path to the local file or list of files to transfer.
+    :param remote_path: Destination path on the remote server.
+    """
+    try:
+        scp = SCPClient(ssh_client.get_transport())
+        scp.put(files, remote_path)
+        print(f"Transferred {files} to {remote_path}")
+    except Exception as e:
+        print(f"Failed to transfer files: {e}")
+    finally:
+        scp.close()
 
 def get_shell(ssh_client):
-    shell = ssh_client.invoke_shell()
-    return shell
-def send_command (shell, command, timeout=1):
-    print(f'Sending command:{command}')
-    shell.send(command+'\n')
-    time.sleep(timeout)
+    """
+    Opens an interactive shell session over SSH.
 
+    :param ssh_client: An active SSHClient object.
+    :return: The interactive shell channel or None if invocation fails.
+    """
+    try:
+        shell = ssh_client.invoke_shell()
+        print("Interactive shell session established.")
+        return shell
+    except paramiko.SSHException as sshException:
+        print(f"Failed to invoke shell: {sshException}")
+    except Exception as e:
+        print(f"An unexpected error occurred while invoking shell: {e}")
+    return None
+
+def send_command (shell, command, timeout=1):
+    try:
+        print(f"Sending command: {command}")
+        shell.send(command + '\n')
+        time.sleep(timeout)
+    except paramiko.SSHException as sshException:
+        print(f"Failed to send command '{command}': {sshException}")
+    except Exception as e:
+        print(f"An unexpected error occurred while sending command '{command}': {e}")
+    return ""
 def show (shell,n=10000):
     output=shell.recv(n)
     return output.decode()
