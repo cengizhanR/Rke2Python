@@ -2,7 +2,7 @@ import paramiko
 import time
 import threading
 from scp import SCPClient
-
+import os
 
 def connect(server_ip, server_port, user, passwd):
     """
@@ -134,6 +134,38 @@ def target_function(router):
     send_from_file(shell, router['config'])
     output = show(shell)
     print(output)
+def generate_hosts_file(routers, domain):
+    try:
+        # Start the content with the default entries
+        hosts_content = """127.0.0.1               localhost.localdomain    localhost
+::1                     localhost6.localdomain6    localhost6
+# cluster nodes.
+"""
+
+        # Determine the maximum length of IP addresses for alignment
+        max_ip_length = max(len(r['server_ip']) for r in routers)
+
+        # Loop through each router to generate the cluster node entries
+        for r in routers:
+            ip = r['server_ip'].ljust(max_ip_length)  # Align IP addresses
+            hostname = r['hostname']
+            # Append each entry for the cluster nodes
+            hosts_content += f"{ip}    {hostname}.{domain}    {hostname}\n"
+
+        # Write the content to the output file
+        output_file = f"hosts"
+        with open(output_file, "w") as file:
+            file.write(hosts_content)
+            file.flush()  # Flush the internal buffer
+            os.fsync(file.fileno())  # Force the content to be written to disk
+        print(f"/etc/hosts file has been generated as {output_file}")
+        with open(output_file, "r") as file:
+            print(f"Contents of {output_file}:")
+            print(file.read())
+
+    except Exception as e:
+        print(f"Error occurred while generating /etc/hosts: {e}")
+        return  # Exit early if there's an error generating the hosts file
 
 if __name__ == '__main__':
     router1 = {'server_ip': '10.1.1.10', 'server_port': '22', 'user':'u1', 'passwd':'cisco', 'config':'ospf.txt'}
